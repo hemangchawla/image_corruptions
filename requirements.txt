@@ -1,0 +1,5 @@
+imagecorruptions
+numpy
+numba
+opencv-python
+scikit-image

@@ -1,0 +1,5 @@
+name: "@hemangchawla/image_corruptions"
+version: "0.1.0"
+description: "Generate corrupted images of your dataset to measure robustness against noise (Gaussian, shot, impulse), blur (defocus, glass, motion, zoom), weather (snow, frost, fog, brightness), and digital (contrast, elastic, pixelate, JPEG)."
+operators:
+  - image_corruptions
