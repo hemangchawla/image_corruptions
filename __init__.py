@@ -9,56 +9,39 @@ from imagecorruptions import get_corruption_names
 import skimage
 import numpy as np
 from numba import njit
+from fiftyone.core.utils import add_sys_path
 
-# Adapted from 
-# The imagecorruptions library uses older version of skimage where gaussian is applied with multichannel arg.
-# It has been replaced with channel_axis
-
-# TODO: Move functions to respective util files
-def wrapper_gaussian_filter(image, sigma, multichannel=False, channel_axis=-1):
-    if skimage.__version__ >= '0.19':
-        # Use channel_axis instead of multichannel
-        return skimage.filters.gaussian(image, sigma, channel_axis=channel_axis)
-    else:
-        # Use multichannel parameter
-        return skimage.filters.gaussian(image, sigma, multichannel=multichannel)
-
-@njit()
-def _shuffle_pixels_njit_glass_blur(d0,d1,x,c):
-
-    # locally shuffle pixels
-    for i in range(c[2]):
-        for h in range(d0 - c[1], c[1], -1):
-            for w in range(d1 - c[1], c[1], -1):
-                dx, dy = np.random.randint(-c[1], c[1], size=(2,))
-                h_prime, w_prime = h + dy, w + dx
-                # swap
-                x[h, w], x[h_prime, w_prime] = x[h_prime, w_prime], x[h, w]
-    return x
-
-def gaussian_blur(x, severity=1):
-    c = [1, 2, 3, 4, 6][severity - 1]
-
-    x = wrapper_gaussian_filter(np.array(x) / 255., sigma=c, multichannel=True)
-    return np.clip(x, 0, 1) * 255
-
-def glass_blur(x, severity=1):
-    # sigma, max_delta, iterations
-    c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][
-        severity - 1]
-
-    x = np.uint8(
-        wrapper_gaussian_filter(np.array(x) / 255., sigma=c[0], multichannel=True) * 255)
-
-    x = _shuffle_pixels_njit_glass_blur(np.array(x).shape[0],np.array(x).shape[1],x,c)
-
-    return np.clip(wrapper_gaussian_filter(x / 255., sigma=c[0], multichannel=True), 0,
-                   1) * 255
+with add_sys_path(os.path.dirname(os.path.abspath(__file__))):
+    from utils_corruption import (
+        gaussian_blur,
+        glass_blur
+    )
 
 def _convert_to_title_case(text):
+    """
+    Convert text to title case. abc_def -> Abc Def
+
+    Parameters:
+    - text (str): Input text.
+
+    Returns:
+    - str: Text converted to title case.
+
+    """
     return ' '.join([word.capitalize() for word in text.split('_')]).strip()
 
 def _get_target_view(ctx, target):
+    """
+    Get the target view based on the  FiftyOne context and image_corruptions target type.
+
+    Parameters:
+    - ctx: FiftyOne Context object.
+    - target (str): Target type from ['entire', 'current', 'selected']
+
+    Returns:
+    - Target view based on the context and target type.
+
+    """
     
     if target == "selected":
         return ctx.view.select(ctx.selected)
@@ -69,6 +52,16 @@ def _get_target_view(ctx, target):
     return ctx.view.match_tags("corrupted", bool=False)
 
 def _get_selected_corruptions(ctx):
+    """
+    Get corruptions selected by use.
+
+    Parameters:
+    - ctx: FiftyOne Context object.
+
+    Returns:
+    - list: List of selected corruptions.
+
+    """
     selected_corruptions = []
     corruption_type = ctx.params.get("corruption_type", "Common")
     if corruption_type == "Common":
@@ -86,7 +79,17 @@ def _get_selected_corruptions(ctx):
         selected_corruptions = corruptions
     return selected_corruptions
 
-def _get_severities(ctx):
+def _get_selected_severities(ctx):
+    """
+    Get severities selected by user.
+
+    Parameters:
+    - ctx: FiftyOne Context object.
+
+    Returns:
+    - list: List of selected severities.
+
+    """
     select_all = ctx.params.get("select_all_severities", False)
     if not select_all:
         return [ctx.params.get("severity", 1)]
@@ -240,7 +243,7 @@ class ImageCorruptions(foo.Operator):
 
         if len(selected_corruptions) > 0:
             severity = ctx.params.get("severity", 1)
-            severities = _get_severities(ctx)
+            severities = _get_selected_severities(ctx)
         
         target = ctx.params.get("target", None) 
         target_view = _get_target_view(ctx, target)    
