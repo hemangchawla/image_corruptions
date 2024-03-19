@@ -267,19 +267,21 @@ def get_new_filepath(sample, corruption, severity):
 
 def corrupt_sample(sample, corruption, severity):
     new_filepath = get_new_filepath(sample, corruption, severity)
-    os.makedirs(os.path.dirname(new_filepath), exist_ok=True)
 
-    image = cv2.imread(sample.filepath)
+    # If the file isn't already created.
+    if not os.path.exists(new_filepath):
+        os.makedirs(os.path.dirname(new_filepath), exist_ok=True)
+        image = cv2.imread(sample.filepath)
 
-    # TODO Create PR to imagecorruptions library to fix from source or create latest version of library
-    if corruption == "gaussian_blur":
-        corrupted = gaussian_blur(image, severity=severity)
-    elif corruption == "glass_blur":
-         corrupted = glass_blur(image, severity=severity)
-    else:
-        corrupted = corrupt(image, corruption_name=corruption, severity=severity)
-        
-    cv2.imwrite(new_filepath, corrupted)
+        # TODO Create PR to imagecorruptions library to fix from source or create latest version of library
+        if corruption == "gaussian_blur":
+            corrupted = gaussian_blur(image, severity=severity)
+        elif corruption == "glass_blur":
+             corrupted = glass_blur(image, severity=severity)
+        else:
+            corrupted = corrupt(image, corruption_name=corruption, severity=severity)
+            
+        cv2.imwrite(new_filepath, corrupted)
     
     new_sample = fo.Sample(filepath=new_filepath, 
                            tags=["corrupted"],  corruption_name=corruption, corruption_severity=severity)
