@@ -56,5 +56,4 @@ We recommend testing against at least one for each category.
 ![image_corruptions.gif](assets%2Fimage_corruptions.gif)
 
 ## Todo
-- Avoid generating already existing corrupted samples
 - Option to parallize geenration of samples
